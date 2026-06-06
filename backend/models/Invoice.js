@@ -72,7 +72,7 @@ const invoiceSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
-invoiceSchema.pre('save', async function (next) {
+invoiceSchema.pre('save', async function () {
   if (!this.invoiceNumber) {
     const count = await mongoose.model('Invoice').countDocuments();
     this.invoiceNumber = `INV-${String(count + 1).padStart(5, '0')}`;
@@ -84,7 +84,6 @@ invoiceSchema.pre('save', async function (next) {
     this.sgst = this.totalTax / 2;
     this.totalAmount = this.subtotal + this.totalTax;
   }
-  next();
 });
 
 module.exports = mongoose.model('Invoice', invoiceSchema);

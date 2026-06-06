@@ -2,6 +2,8 @@ const express = require('express');
 const Quotation = require('../models/Quotation');
 const RFQ = require('../models/RFQ');
 const Vendor = require('../models/Vendor');
+const PurchaseOrder = require('../models/PurchaseOrder');
+const Invoice = require('../models/Invoice');
 const ActivityLog = require('../models/ActivityLog');
 const { protect, authorize } = require('../middleware/auth');
 
@@ -149,15 +151,50 @@ router.put('/:id/approve', protect, authorize('manager'), async (req, res) => {
 
     if (!quotation) return res.status(404).json({ message: 'Quotation not found' });
 
+    // Auto-generate Purchase Order
+    const subtotal = quotation.totalAmount;
+    const taxRate = 18;
+    const taxAmount = (subtotal * taxRate) / 100;
+    const totalAmount = subtotal + taxAmount;
+
+    const po = await PurchaseOrder.create({
+      quotation: quotation._id,
+      rfq: quotation.rfq._id,
+      vendor: quotation.vendor._id,
+      items: quotation.items,
+      subtotal,
+      taxRate,
+      taxAmount,
+      totalAmount,
+      status: 'issued',
+      createdBy: req.user._id,
+    });
+
+    // Auto-generate Invoice from the PO
+    const invoice = await Invoice.create({
+      purchaseOrder: po._id,
+      vendor: quotation.vendor._id,
+      items: quotation.items,
+      subtotal,
+      taxRate,
+      totalTax: taxAmount,
+      cgst: taxAmount / 2,
+      sgst: taxAmount / 2,
+      totalAmount,
+      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      status: 'draft',
+      createdBy: req.user._id,
+    });
+
     await ActivityLog.create({
       user: req.user._id,
       action: 'quotation_approved',
       entityType: 'quotation',
       entityId: quotation._id,
-      description: `Quotation ${quotation.quotationNumber} was approved`,
+      description: `Quotation ${quotation.quotationNumber} approved → PO ${po.poNumber} & Invoice ${invoice.invoiceNumber} generated`,
     });
 
-    res.json(quotation);
+    res.json({ quotation, purchaseOrder: po, invoice });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

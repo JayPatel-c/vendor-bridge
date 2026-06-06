@@ -65,7 +65,7 @@ const purchaseOrderSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
-purchaseOrderSchema.pre('save', async function (next) {
+purchaseOrderSchema.pre('save', async function () {
   if (!this.poNumber) {
     const count = await mongoose.model('PurchaseOrder').countDocuments();
     this.poNumber = `PO-${String(count + 1).padStart(5, '0')}`;
@@ -75,7 +75,6 @@ purchaseOrderSchema.pre('save', async function (next) {
     this.taxAmount = (this.subtotal * this.taxRate) / 100;
     this.totalAmount = this.subtotal + this.taxAmount;
   }
-  next();
 });
 
 module.exports = mongoose.model('PurchaseOrder', purchaseOrderSchema);
