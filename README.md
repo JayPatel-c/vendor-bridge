@@ -1,1 +1,1 @@
-# Odoo-x-KSV
+# vendor-bridge
