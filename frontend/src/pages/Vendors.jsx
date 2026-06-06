@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import API from '../api/axios';
+import { useAuth } from '../context/AuthContext';
 
 const statusColors = {
   active: 'bg-green-500/10 text-green-400',
@@ -14,6 +15,8 @@ const categoryLabels = {
 };
 
 export default function Vendors() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -75,10 +78,12 @@ export default function Vendors() {
           <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Vendors</h1>
           <p className="text-sm text-green-400 font-light mt-1">Manage your supplier network</p>
         </div>
-        <button onClick={() => { setEditing(null); setForm({ name: '', email: '', contactPerson: '', phone: '', category: 'other', gstNumber: '', address: { city: '', state: '', country: 'India' } }); setShowModal(true); }}
-          className="px-4 py-2.5 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold rounded-xl transition-all">
-          + Add Vendor
-        </button>
+        {isAdmin && (
+          <button onClick={() => { setEditing(null); setForm({ name: '', email: '', contactPerson: '', phone: '', category: 'other', gstNumber: '', address: { city: '', state: '', country: 'India' } }); setShowModal(true); }}
+            className="px-4 py-2.5 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold rounded-xl transition-all">
+            + Add Vendor
+          </button>
+        )}
       </div>
 
       {/* Search */}
@@ -101,7 +106,7 @@ export default function Vendors() {
                 <th className="text-left text-[10px] font-medium text-green-400 uppercase tracking-wider px-5 py-4 hidden sm:table-cell">Category</th>
                 <th className="text-left text-[10px] font-medium text-green-400 uppercase tracking-wider px-5 py-4">Status</th>
                 <th className="text-left text-[10px] font-medium text-green-400 uppercase tracking-wider px-5 py-4 hidden lg:table-cell">Rating</th>
-                <th className="text-right text-[10px] font-medium text-green-400 uppercase tracking-wider px-5 py-4">Actions</th>
+                {isAdmin && <th className="text-right text-[10px] font-medium text-green-400 uppercase tracking-wider px-5 py-4">Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -126,6 +131,7 @@ export default function Vendors() {
                     <span className={`text-[10px] px-2.5 py-1 rounded-full font-medium ${statusColors[v.status]}`}>{v.status}</span>
                   </td>
                   <td className="px-5 py-4 hidden lg:table-cell">{renderStars(v.rating)}</td>
+                  {isAdmin && (
                   <td className="px-5 py-4 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button onClick={() => handleEdit(v)} className="p-1.5 rounded-lg hover:bg-white/5 text-green-400 hover:text-white transition-colors">
@@ -136,6 +142,7 @@ export default function Vendors() {
                       </button>
                     </div>
                   </td>
+                  )}
                 </tr>
               ))}
             </tbody>

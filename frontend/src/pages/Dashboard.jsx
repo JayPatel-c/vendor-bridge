@@ -52,12 +52,16 @@ export default function Dashboard() {
           <p className="text-sm text-green-400 font-light mt-1">Welcome back, {user?.name}. Today's overview.</p>
         </div>
         <div className="flex gap-3">
-          <Link to="/rfqs/new" className="px-4 py-2.5 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold rounded-xl transition-all">
-            + New RFQ
-          </Link>
-          <Link to="/vendors" className="px-4 py-2.5 bg-white/5 hover:bg-white/10 text-white text-xs font-medium rounded-xl border border-white/10 transition-all">
-            View Vendors
-          </Link>
+          {user?.role === 'procurement_officer' && (
+            <Link to="/rfqs/new" className="px-4 py-2.5 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold rounded-xl transition-all">
+              + New RFQ
+            </Link>
+          )}
+          {(user?.role === 'admin' || user?.role === 'procurement_officer') && (
+            <Link to="/vendors" className="px-4 py-2.5 bg-white/5 hover:bg-white/10 text-white text-xs font-medium rounded-xl border border-white/10 transition-all">
+              View Vendors
+            </Link>
+          )}
         </div>
       </div>
 

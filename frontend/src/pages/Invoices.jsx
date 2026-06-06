@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import API from '../api/axios';
+import { useAuth } from '../context/AuthContext';
 
 const statusColors = {
   draft: 'bg-gray-500/10 text-green-400',
@@ -10,6 +11,8 @@ const statusColors = {
 };
 
 export default function Invoices() {
+  const { user } = useAuth();
+  const isPO = user?.role === 'procurement_officer';
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -97,22 +100,26 @@ export default function Invoices() {
                     <p className="text-sm font-medium text-white">{formatCurrency(inv.totalAmount)}</p>
                   </td>
                   <td className="px-5 py-4">
-                    <select 
-                      value={inv.status} 
-                      onChange={(e) => handleStatusUpdate(inv._id, e.target.value)}
-                      className={`text-[10px] px-2.5 py-1 rounded-full font-medium focus:outline-none appearance-none cursor-pointer ${statusColors[inv.status]}`}
-                    >
-                      <option value="draft">Draft</option>
-                      <option value="sent">Sent</option>
-                      <option value="paid">Paid</option>
-                      <option value="overdue">Overdue</option>
-                      <option value="cancelled">Cancelled</option>
-                    </select>
+                    {isPO ? (
+                      <select 
+                        value={inv.status} 
+                        onChange={(e) => handleStatusUpdate(inv._id, e.target.value)}
+                        className={`text-[10px] px-2.5 py-1 rounded-full font-medium focus:outline-none appearance-none cursor-pointer ${statusColors[inv.status]}`}
+                      >
+                        <option value="draft">Draft</option>
+                        <option value="sent">Sent</option>
+                        <option value="paid">Paid</option>
+                        <option value="overdue">Overdue</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                    ) : (
+                      <span className={`text-[10px] px-2.5 py-1 rounded-full font-medium ${statusColors[inv.status]}`}>{inv.status}</span>
+                    )}
                   </td>
                   <td className="px-5 py-4 text-right">
                     <div className="flex items-center justify-end gap-3">
                        <button onClick={() => setSelectedInvoice(inv._id)} className="text-xs text-green-400 hover:text-white transition-colors">View</button>
-                       {!inv.emailSent && inv.status !== 'cancelled' && (
+                       {isPO && !inv.emailSent && inv.status !== 'cancelled' && (
                          <button onClick={() => handleSendEmail(inv._id)} className="text-xs text-green-400 hover:text-indigo-300 transition-colors border border-indigo-500/20 px-2 py-1 rounded flex items-center gap-1">
                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                              Send

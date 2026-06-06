@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import RoleRoute from './components/RoleRoute';
 
 // Landing & Auth
 import Landing from './pages/Landing';
@@ -57,16 +58,16 @@ export default function App() {
             }
           >
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/vendors" element={<Vendors />} />
+            <Route path="/vendors" element={<RoleRoute allowed={['admin', 'procurement_officer']}><Vendors /></RoleRoute>} />
             <Route path="/rfqs" element={<RFQs />} />
-            <Route path="/rfqs/new" element={<CreateRFQ />} />
-            <Route path="/quotations" element={<Quotations />} />
-            <Route path="/quotations/compare/:rfqId" element={<QuotationComparison />} />
-            <Route path="/approvals" element={<Approvals />} />
+            <Route path="/rfqs/new" element={<RoleRoute allowed={['procurement_officer']}><CreateRFQ /></RoleRoute>} />
+            <Route path="/quotations" element={<RoleRoute allowed={['vendor', 'procurement_officer']}><Quotations /></RoleRoute>} />
+            <Route path="/quotations/compare/:rfqId" element={<RoleRoute allowed={['procurement_officer']}><QuotationComparison /></RoleRoute>} />
+            <Route path="/approvals" element={<RoleRoute allowed={['manager']}><Approvals /></RoleRoute>} />
             <Route path="/purchase-orders" element={<PurchaseOrders />} />
             <Route path="/invoices" element={<Invoices />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/activity" element={<ActivityLogs />} />
+            <Route path="/reports" element={<RoleRoute allowed={['admin', 'procurement_officer', 'manager']}><Reports /></RoleRoute>} />
+            <Route path="/activity" element={<RoleRoute allowed={['admin', 'procurement_officer', 'manager']}><ActivityLogs /></RoleRoute>} />
           </Route>
 
           {/* Catch all */}

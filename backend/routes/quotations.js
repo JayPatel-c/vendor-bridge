@@ -1,12 +1,13 @@
 const express = require('express');
 const Quotation = require('../models/Quotation');
 const RFQ = require('../models/RFQ');
+const Vendor = require('../models/Vendor');
 const ActivityLog = require('../models/ActivityLog');
-const { protect } = require('../middleware/auth');
+const { protect, authorize } = require('../middleware/auth');
 
 const router = express.Router();
 
-// GET /api/quotations
+// GET /api/quotations — All roles; Vendor sees own only
 router.get('/', protect, async (req, res) => {
   try {
     const { rfq, vendor, status, search, page = 1, limit = 20 } = req.query;
@@ -19,6 +20,16 @@ router.get('/', protect, async (req, res) => {
       query.$or = [
         { quotationNumber: { $regex: search, $options: 'i' } },
       ];
+    }
+
+    // Vendor can only see their own quotations
+    if (req.user.role === 'vendor') {
+      const vendorRecord = await Vendor.findOne({ email: req.user.email });
+      if (vendorRecord) {
+        query.vendor = vendorRecord._id;
+      } else {
+        return res.json({ quotations: [], total: 0, page: 1, pages: 0 });
+      }
     }
 
     const total = await Quotation.countDocuments(query);
@@ -37,8 +48,8 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
-// GET /api/quotations/compare/:rfqId — get all quotations for an RFQ for comparison
-router.get('/compare/:rfqId', protect, async (req, res) => {
+// GET /api/quotations/compare/:rfqId — Procurement Officer only
+router.get('/compare/:rfqId', protect, authorize('procurement_officer'), async (req, res) => {
   try {
     const quotations = await Quotation.find({ rfq: req.params.rfqId })
       .populate('vendor', 'name email category rating')
@@ -62,16 +73,36 @@ router.get('/:id', protect, async (req, res) => {
       .populate('createdBy', 'name email')
       .populate('approvedBy', 'name email');
     if (!quotation) return res.status(404).json({ message: 'Quotation not found' });
+
+    // Vendor can only view their own quotations
+    if (req.user.role === 'vendor') {
+      const vendorRecord = await Vendor.findOne({ email: req.user.email });
+      if (!vendorRecord || quotation.vendor._id.toString() !== vendorRecord._id.toString()) {
+        return res.status(403).json({ message: 'Not authorized to view this quotation' });
+      }
+    }
+
     res.json(quotation);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
-// POST /api/quotations
-router.post('/', protect, async (req, res) => {
+// POST /api/quotations — Vendor only (submit quotation)
+router.post('/', protect, authorize('vendor'), async (req, res) => {
   try {
-    const quotation = await Quotation.create({ ...req.body, createdBy: req.user._id });
+    // Auto-resolve vendor from logged-in user's email
+    const vendorRecord = await Vendor.findOne({ email: req.user.email });
+    if (!vendorRecord) {
+      return res.status(400).json({ message: 'No vendor profile found for your account. Please contact an admin.' });
+    }
+
+    const { vendor: _ignore, ...quotationData } = req.body;
+    const quotation = await Quotation.create({
+      ...quotationData,
+      vendor: vendorRecord._id,
+      createdBy: req.user._id,
+    });
 
     // Update RFQ status to in-progress
     await RFQ.findByIdAndUpdate(req.body.rfq, { status: 'in-progress' });
@@ -103,8 +134,8 @@ router.put('/:id', protect, async (req, res) => {
   }
 });
 
-// PUT /api/quotations/:id/approve
-router.put('/:id/approve', protect, async (req, res) => {
+// PUT /api/quotations/:id/approve — Manager only
+router.put('/:id/approve', protect, authorize('manager'), async (req, res) => {
   try {
     const quotation = await Quotation.findByIdAndUpdate(
       req.params.id,
@@ -132,8 +163,8 @@ router.put('/:id/approve', protect, async (req, res) => {
   }
 });
 
-// PUT /api/quotations/:id/reject
-router.put('/:id/reject', protect, async (req, res) => {
+// PUT /api/quotations/:id/reject — Manager only
+router.put('/:id/reject', protect, authorize('manager'), async (req, res) => {
   try {
     const quotation = await Quotation.findByIdAndUpdate(
       req.params.id,
@@ -161,8 +192,8 @@ router.put('/:id/reject', protect, async (req, res) => {
   }
 });
 
-// DELETE /api/quotations/:id
-router.delete('/:id', protect, async (req, res) => {
+// DELETE /api/quotations/:id — Procurement Officer only
+router.delete('/:id', protect, authorize('procurement_officer'), async (req, res) => {
   try {
     const q = await Quotation.findByIdAndDelete(req.params.id);
     if (!q) return res.status(404).json({ message: 'Quotation not found' });

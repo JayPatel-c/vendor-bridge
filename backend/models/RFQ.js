@@ -47,12 +47,11 @@ const rfqSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // Auto-generate RFQ number
-rfqSchema.pre('save', async function (next) {
+rfqSchema.pre('save', async function () {
   if (!this.rfqNumber) {
     const count = await mongoose.model('RFQ').countDocuments();
     this.rfqNumber = `RFQ-${String(count + 1).padStart(5, '0')}`;
   }
-  next();
 });
 
 module.exports = mongoose.model('RFQ', rfqSchema);

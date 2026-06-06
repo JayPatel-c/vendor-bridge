@@ -4,12 +4,12 @@ const RFQ = require('../models/RFQ');
 const Quotation = require('../models/Quotation');
 const PurchaseOrder = require('../models/PurchaseOrder');
 const Invoice = require('../models/Invoice');
-const { protect } = require('../middleware/auth');
+const { protect, authorize } = require('../middleware/auth');
 
 const router = express.Router();
 
 // GET /api/reports/dashboard — dashboard stats
-router.get('/dashboard', protect, async (req, res) => {
+router.get('/dashboard', protect, authorize('admin', 'procurement_officer', 'manager'), async (req, res) => {
   try {
     const [
       totalVendors,
@@ -97,7 +97,7 @@ router.get('/dashboard', protect, async (req, res) => {
 });
 
 // GET /api/reports/analytics — detailed analytics
-router.get('/analytics', protect, async (req, res) => {
+router.get('/analytics', protect, authorize('admin', 'procurement_officer', 'manager'), async (req, res) => {
   try {
     // Vendor performance (top vendors by PO count)
     const vendorPerformance = await PurchaseOrder.aggregate([

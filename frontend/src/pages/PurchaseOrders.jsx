@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import API from '../api/axios';
+import { useAuth } from '../context/AuthContext';
 
 const statusColors = {
   draft: 'bg-gray-500/10 text-green-400',
@@ -12,6 +13,8 @@ const statusColors = {
 };
 
 export default function PurchaseOrders() {
+  const { user } = useAuth();
+  const isPO = user?.role === 'procurement_officer';
   const [purchaseOrders, setPurchaseOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -100,23 +103,27 @@ export default function PurchaseOrders() {
                     <p className="text-sm font-medium text-white">{formatCurrency(po.totalAmount)}</p>
                   </td>
                   <td className="px-5 py-4">
-                    <select 
-                      value={po.status} 
-                      onChange={(e) => handleStatusUpdate(po._id, e.target.value)}
-                      className={`text-[10px] px-2.5 py-1 rounded-full font-medium focus:outline-none appearance-none cursor-pointer ${statusColors[po.status]}`}
-                    >
-                      <option value="draft">Draft</option>
-                      <option value="issued">Issued</option>
-                      <option value="acknowledged">Acknowledged</option>
-                      <option value="in-transit">In Transit</option>
-                      <option value="delivered">Delivered</option>
-                      <option value="cancelled">Cancelled</option>
-                    </select>
+                    {isPO ? (
+                      <select 
+                        value={po.status} 
+                        onChange={(e) => handleStatusUpdate(po._id, e.target.value)}
+                        className={`text-[10px] px-2.5 py-1 rounded-full font-medium focus:outline-none appearance-none cursor-pointer ${statusColors[po.status]}`}
+                      >
+                        <option value="draft">Draft</option>
+                        <option value="issued">Issued</option>
+                        <option value="acknowledged">Acknowledged</option>
+                        <option value="in-transit">In Transit</option>
+                        <option value="delivered">Delivered</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                    ) : (
+                      <span className={`text-[10px] px-2.5 py-1 rounded-full font-medium ${statusColors[po.status]}`}>{po.status}</span>
+                    )}
                   </td>
                   <td className="px-5 py-4 text-right">
                     <div className="flex items-center justify-end gap-3">
                        <button onClick={() => { setSelectedPO(po._id); setShowModal(true); }} className="text-xs text-green-400 hover:text-white transition-colors">View</button>
-                       {po.status === 'delivered' && (
+                       {isPO && po.status === 'delivered' && (
                          <button onClick={() => handleGenerateInvoice(po._id)} className="text-xs text-green-400 hover:text-green-400 transition-colors border border-\[#9A8678\]/20 px-2 py-1 rounded">Generate Invoice</button>
                        )}
                     </div>

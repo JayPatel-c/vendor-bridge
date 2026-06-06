@@ -57,12 +57,11 @@ const quotationSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
-quotationSchema.pre('save', async function (next) {
+quotationSchema.pre('save', async function () {
   if (!this.quotationNumber) {
     const count = await mongoose.model('Quotation').countDocuments();
     this.quotationNumber = `QT-${String(count + 1).padStart(5, '0')}`;
   }
-  next();
 });
 
 module.exports = mongoose.model('Quotation', quotationSchema);

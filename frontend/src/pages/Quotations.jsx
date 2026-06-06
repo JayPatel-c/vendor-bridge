@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import API from '../api/axios';
+import { useAuth } from '../context/AuthContext';
 
 const statusColors = {
   pending: 'bg-amber-500/10 text-amber-400', 'under-review': 'bg-green-500/10 text-green-400',
@@ -10,6 +11,7 @@ const statusColors = {
 
 export default function Quotations() {
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   const rfqId = searchParams.get('rfq');
   const [quotations, setQuotations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -32,7 +34,9 @@ export default function Quotations() {
   useEffect(() => {
     fetchQuotations();
     API.get('/rfqs').then(({ data }) => setRfqs(data.rfqs)).catch(console.error);
-    API.get('/vendors').then(({ data }) => setVendors(data.vendors)).catch(console.error);
+    if (user?.role !== 'vendor') {
+      API.get('/vendors').then(({ data }) => setVendors(data.vendors)).catch(console.error);
+    }
   }, [rfqId]);
 
   const updateItem = (i, field, value) => {
@@ -64,14 +68,16 @@ export default function Quotations() {
           <p className="text-sm text-green-400 font-light mt-1">{rfqId ? 'Quotations for this RFQ' : 'All vendor quotations'}</p>
         </div>
         <div className="flex gap-3">
-          {rfqId && (
+          {rfqId && user?.role === 'procurement_officer' && (
             <Link to={`/quotations/compare/${rfqId}`} className="px-4 py-2.5 bg-white/5 hover:bg-white/10 text-white text-xs font-medium rounded-xl border border-white/10 transition-all">
               Compare Quotations
             </Link>
           )}
-          <button onClick={() => setShowModal(true)} className="px-4 py-2.5 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold rounded-xl transition-all">
-            + Submit Quotation
-          </button>
+          {user?.role === 'vendor' && (
+            <button onClick={() => setShowModal(true)} className="px-4 py-2.5 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold rounded-xl transition-all">
+              + Submit Quotation
+            </button>
+          )}
         </div>
       </div>
 
@@ -132,6 +138,7 @@ export default function Quotations() {
                     {rfqs.map(r => <option key={r._id} value={r._id} className="bg-[#151C1A]">{r.rfqNumber} — {r.title}</option>)}
                   </select>
                 </div>
+                {user?.role !== 'vendor' && (
                 <div>
                   <label className="block text-xs text-green-400 uppercase tracking-wider mb-1.5">Vendor *</label>
                   <select value={form.vendor} onChange={(e) => setForm({...form, vendor: e.target.value})} required
@@ -140,6 +147,7 @@ export default function Quotations() {
                     {vendors.map(v => <option key={v._id} value={v._id} className="bg-[#151C1A]">{v.name}</option>)}
                   </select>
                 </div>
+                )}
                 <div>
                   <label className="block text-xs text-green-400 uppercase tracking-wider mb-1.5">Delivery Timeline</label>
                   <input value={form.deliveryTimeline} onChange={(e) => setForm({...form, deliveryTimeline: e.target.value})} placeholder="e.g. 15 days"

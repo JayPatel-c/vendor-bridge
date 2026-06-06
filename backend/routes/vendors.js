@@ -1,12 +1,12 @@
 const express = require('express');
 const Vendor = require('../models/Vendor');
 const ActivityLog = require('../models/ActivityLog');
-const { protect } = require('../middleware/auth');
+const { protect, authorize } = require('../middleware/auth');
 
 const router = express.Router();
 
-// GET /api/vendors — list all vendors
-router.get('/', protect, async (req, res) => {
+// GET /api/vendors — Admin: full access, Procurement Officer: view only
+router.get('/', protect, authorize('admin', 'procurement_officer'), async (req, res) => {
   try {
     const { search, category, status, page = 1, limit = 20 } = req.query;
     const query = {};
@@ -34,8 +34,8 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
-// GET /api/vendors/:id
-router.get('/:id', protect, async (req, res) => {
+// GET /api/vendors/:id — Admin & Procurement Officer only
+router.get('/:id', protect, authorize('admin', 'procurement_officer'), async (req, res) => {
   try {
     const vendor = await Vendor.findById(req.params.id).populate('createdBy', 'name email');
     if (!vendor) return res.status(404).json({ message: 'Vendor not found' });
@@ -45,8 +45,8 @@ router.get('/:id', protect, async (req, res) => {
   }
 });
 
-// POST /api/vendors
-router.post('/', protect, async (req, res) => {
+// POST /api/vendors — Admin only
+router.post('/', protect, authorize('admin'), async (req, res) => {
   try {
     const vendor = await Vendor.create({ ...req.body, createdBy: req.user._id });
 
@@ -64,8 +64,8 @@ router.post('/', protect, async (req, res) => {
   }
 });
 
-// PUT /api/vendors/:id
-router.put('/:id', protect, async (req, res) => {
+// PUT /api/vendors/:id — Admin only
+router.put('/:id', protect, authorize('admin'), async (req, res) => {
   try {
     const vendor = await Vendor.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
     if (!vendor) return res.status(404).json({ message: 'Vendor not found' });
@@ -84,8 +84,8 @@ router.put('/:id', protect, async (req, res) => {
   }
 });
 
-// DELETE /api/vendors/:id
-router.delete('/:id', protect, async (req, res) => {
+// DELETE /api/vendors/:id — Admin only
+router.delete('/:id', protect, authorize('admin'), async (req, res) => {
   try {
     const vendor = await Vendor.findByIdAndDelete(req.params.id);
     if (!vendor) return res.status(404).json({ message: 'Vendor not found' });

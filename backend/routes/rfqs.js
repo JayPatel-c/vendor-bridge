@@ -1,11 +1,12 @@
 const express = require('express');
 const RFQ = require('../models/RFQ');
+const Vendor = require('../models/Vendor');
 const ActivityLog = require('../models/ActivityLog');
-const { protect } = require('../middleware/auth');
+const { protect, authorize } = require('../middleware/auth');
 
 const router = express.Router();
 
-// GET /api/rfqs
+// GET /api/rfqs — All roles can view; Vendor sees only assigned RFQs
 router.get('/', protect, async (req, res) => {
   try {
     const { status, search, page = 1, limit = 20 } = req.query;
@@ -17,6 +18,16 @@ router.get('/', protect, async (req, res) => {
         { title: { $regex: search, $options: 'i' } },
         { rfqNumber: { $regex: search, $options: 'i' } },
       ];
+    }
+
+    // Vendor can only see RFQs assigned to their linked vendor record
+    if (req.user.role === 'vendor') {
+      const vendorRecord = await Vendor.findOne({ email: req.user.email });
+      if (vendorRecord) {
+        query.vendors = vendorRecord._id;
+      } else {
+        return res.json({ rfqs: [], total: 0, page: 1, pages: 0 });
+      }
     }
 
     const total = await RFQ.countDocuments(query);
@@ -33,21 +44,31 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
-// GET /api/rfqs/:id
+// GET /api/rfqs/:id — All roles; Vendor sees only if assigned
 router.get('/:id', protect, async (req, res) => {
   try {
     const rfq = await RFQ.findById(req.params.id)
       .populate('vendors', 'name email contactPerson phone category')
       .populate('createdBy', 'name email');
     if (!rfq) return res.status(404).json({ message: 'RFQ not found' });
+
+    // Vendor can only view RFQs they are assigned to
+    if (req.user.role === 'vendor') {
+      const vendorRecord = await Vendor.findOne({ email: req.user.email });
+      const isAssigned = vendorRecord && rfq.vendors.some(v => v._id.toString() === vendorRecord._id.toString());
+      if (!isAssigned) {
+        return res.status(403).json({ message: 'Not authorized to view this RFQ' });
+      }
+    }
+
     res.json(rfq);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
-// POST /api/rfqs
-router.post('/', protect, async (req, res) => {
+// POST /api/rfqs — Procurement Officer only
+router.post('/', protect, authorize('procurement_officer'), async (req, res) => {
   try {
     const rfq = await RFQ.create({ ...req.body, createdBy: req.user._id });
 
@@ -65,8 +86,8 @@ router.post('/', protect, async (req, res) => {
   }
 });
 
-// PUT /api/rfqs/:id
-router.put('/:id', protect, async (req, res) => {
+// PUT /api/rfqs/:id — Procurement Officer only
+router.put('/:id', protect, authorize('procurement_officer'), async (req, res) => {
   try {
     const rfq = await RFQ.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
       .populate('vendors', 'name email');
@@ -89,8 +110,8 @@ router.put('/:id', protect, async (req, res) => {
   }
 });
 
-// DELETE /api/rfqs/:id
-router.delete('/:id', protect, async (req, res) => {
+// DELETE /api/rfqs/:id — Procurement Officer only
+router.delete('/:id', protect, authorize('procurement_officer'), async (req, res) => {
   try {
     const rfq = await RFQ.findByIdAndDelete(req.params.id);
     if (!rfq) return res.status(404).json({ message: 'RFQ not found' });

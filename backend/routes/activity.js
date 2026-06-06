@@ -1,11 +1,11 @@
 const express = require('express');
 const ActivityLog = require('../models/ActivityLog');
-const { protect } = require('../middleware/auth');
+const { protect, authorize } = require('../middleware/auth');
 
 const router = express.Router();
 
-// GET /api/activity
-router.get('/', protect, async (req, res) => {
+// GET /api/activity — Admin, Procurement Officer, Manager only (Vendor gets 403)
+router.get('/', protect, authorize('admin', 'procurement_officer', 'manager'), async (req, res) => {
   try {
     const { entityType, page = 1, limit = 30 } = req.query;
     const query = {};
