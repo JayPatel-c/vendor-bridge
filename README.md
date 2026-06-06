@@ -29,20 +29,6 @@ VendorBridge makes procurement easy. Instead of juggling emails, spreadsheets, a
 
 ---
 
-## The Problem We Solve
-
-❌ Scattered RFQs across emails and spreadsheets
-❌ No way to track vendor responses
-❌ Multiple approval steps take forever
-❌ Can't compare quotes easily
-❌ Manual invoice processing wastes time
-❌ No visibility into spending
-❌ Hard to see what's happening
-
-**VendorBridge fixes all of this!** ✅
-
----
-
 ## ✨ Features
 
 | Feature | What It Does |
