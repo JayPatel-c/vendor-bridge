@@ -26,13 +26,20 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-3 group" data-cursor="pointer">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center transition-transform group-hover:scale-110 group-hover:rotate-3">
-            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-          </div>
-          <span className="text-xl font-semibold tracking-tight">
-            Vendor<span className="text-green-400">Bridge</span>
+          <svg className="w-8 h-8 text-green-500 transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            {/* Horizontal road */}
+            <path strokeLinecap="round" strokeLinejoin="round" d="M2 15h20" />
+            {/* Two pillars */}
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7 19V5M17 19V5" />
+            {/* Main middle cable */}
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7 5c2.5 6 7.5 6 10 0" />
+            {/* Outer cables */}
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7 5C4 7 2 11 2 15M17 5c3 2 5 6 5 10" />
+            {/* Suspender lines */}
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v5M9.5 8v7M14.5 8v7" />
+          </svg>
+          <span className="text-xl font-semibold tracking-tight text-white">
+            VendorBridge
           </span>
         </Link>
 
