@@ -6,6 +6,7 @@ const PurchaseOrder = require('../models/PurchaseOrder');
 const Invoice = require('../models/Invoice');
 const ActivityLog = require('../models/ActivityLog');
 const { protect, authorize } = require('../middleware/auth');
+const { sendInvoiceEmail } = require('../utils/email');
 
 const router = express.Router();
 
@@ -126,7 +127,7 @@ router.post('/', protect, authorize('vendor'), async (req, res) => {
 // PUT /api/quotations/:id
 router.put('/:id', protect, async (req, res) => {
   try {
-    const quotation = await Quotation.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
+    const quotation = await Quotation.findByIdAndUpdate(req.params.id, req.body, { returnDocument: 'after', runValidators: true })
       .populate('rfq', 'title rfqNumber')
       .populate('vendor', 'name email');
     if (!quotation) return res.status(404).json({ message: 'Quotation not found' });
@@ -139,6 +140,13 @@ router.put('/:id', protect, async (req, res) => {
 // PUT /api/quotations/:id/approve — Manager only
 router.put('/:id/approve', protect, authorize('manager'), async (req, res) => {
   try {
+    // Idempotency check — prevent double approval
+    const existing = await Quotation.findById(req.params.id);
+    if (!existing) return res.status(404).json({ message: 'Quotation not found' });
+    if (existing.status === 'approved') {
+      return res.status(400).json({ message: 'Quotation has already been approved' });
+    }
+
     const quotation = await Quotation.findByIdAndUpdate(
       req.params.id,
       {
@@ -146,10 +154,8 @@ router.put('/:id/approve', protect, authorize('manager'), async (req, res) => {
         approvedBy: req.user._id,
         approvalRemarks: req.body.remarks || '',
       },
-      { new: true }
+      { returnDocument: 'after' }
     ).populate('vendor', 'name email').populate('rfq', 'title rfqNumber');
-
-    if (!quotation) return res.status(404).json({ message: 'Quotation not found' });
 
     // Auto-generate Purchase Order
     const subtotal = quotation.totalAmount;
@@ -194,6 +200,14 @@ router.put('/:id/approve', protect, authorize('manager'), async (req, res) => {
       description: `Quotation ${quotation.quotationNumber} approved → PO ${po.poNumber} & Invoice ${invoice.invoiceNumber} generated`,
     });
 
+    // Send invoice email to vendor
+    try {
+      const vendorFull = await Vendor.findById(quotation.vendor._id);
+      await sendInvoiceEmail(invoice, vendorFull, po);
+    } catch (emailErr) {
+      console.error('Invoice email failed:', emailErr.message);
+    }
+
     res.json({ quotation, purchaseOrder: po, invoice });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -210,7 +224,7 @@ router.put('/:id/reject', protect, authorize('manager'), async (req, res) => {
         approvedBy: req.user._id,
         approvalRemarks: req.body.remarks || '',
       },
-      { new: true }
+      { returnDocument: 'after' }
     ).populate('vendor', 'name email').populate('rfq', 'title rfqNumber');
 
     if (!quotation) return res.status(404).json({ message: 'Quotation not found' });

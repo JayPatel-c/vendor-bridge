@@ -6,6 +6,7 @@ export default function Approvals() {
   const [loading, setLoading] = useState(true);
   const [remarksModal, setRemarksModal] = useState(null);
   const [remarks, setRemarks] = useState('');
+  const [processing, setProcessing] = useState(false);
 
   const fetchPending = () => {
     API.get('/quotations', { params: { status: 'pending' } })
@@ -17,21 +18,27 @@ export default function Approvals() {
   useEffect(() => { fetchPending(); }, []);
 
   const handleApprove = async (id) => {
+    if (processing) return;
+    setProcessing(true);
     try {
       await API.put(`/quotations/${id}/approve`, { remarks });
       setRemarksModal(null);
       setRemarks('');
       fetchPending();
     } catch (err) { alert(err.response?.data?.message || 'Error'); }
+    finally { setProcessing(false); }
   };
 
   const handleReject = async (id) => {
+    if (processing) return;
+    setProcessing(true);
     try {
       await API.put(`/quotations/${id}/reject`, { remarks });
       setRemarksModal(null);
       setRemarks('');
       fetchPending();
     } catch (err) { alert(err.response?.data?.message || 'Error'); }
+    finally { setProcessing(false); }
   };
 
   const formatCurrency = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
@@ -102,7 +109,7 @@ export default function Approvals() {
 
       {/* Remarks Modal */}
       {remarksModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setRemarksModal(null)}>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => !processing && setRemarksModal(null)}>
           <div className="glass-panel rounded-2xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
             <h2 className="text-lg font-bold text-white mb-4">
               {remarksModal.action === 'approve' ? 'Approve' : 'Reject'} Quotation
@@ -110,12 +117,15 @@ export default function Approvals() {
             <textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} rows={3} placeholder="Add remarks (optional)..."
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-\[#9A8678\]/40 transition-all resize-none mb-4" />
             <div className="flex justify-end gap-3">
-              <button onClick={() => setRemarksModal(null)} className="px-5 py-2.5 text-sm text-green-400 hover:text-white transition-colors">Cancel</button>
-              <button onClick={() => remarksModal.action === 'approve' ? handleApprove(remarksModal.id) : handleReject(remarksModal.id)}
-                className={`px-5 py-2.5 text-sm font-semibold rounded-xl transition-all ${
+              <button onClick={() => setRemarksModal(null)} disabled={processing} className="px-5 py-2.5 text-sm text-green-400 hover:text-white transition-colors disabled:opacity-50">Cancel</button>
+              <button
+                disabled={processing}
+                onClick={() => remarksModal.action === 'approve' ? handleApprove(remarksModal.id) : handleReject(remarksModal.id)}
+                className={`px-5 py-2.5 text-sm font-semibold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${
                   remarksModal.action === 'approve' ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-red-500 hover:bg-red-400 text-white'
                 }`}>
-                Confirm {remarksModal.action === 'approve' ? 'Approval' : 'Rejection'}
+                {processing && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                {processing ? 'Processing...' : `Confirm ${remarksModal.action === 'approve' ? 'Approval' : 'Rejection'}`}
               </button>
             </div>
           </div>

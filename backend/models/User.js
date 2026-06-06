@@ -37,6 +37,18 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
+  emailVerified: {
+    type: Boolean,
+    default: false,
+  },
+  verificationOTP: {
+    type: String,
+    default: null,
+  },
+  otpExpiresAt: {
+    type: Date,
+    default: null,
+  },
 }, { timestamps: true });
 
 userSchema.pre('save', async function () {

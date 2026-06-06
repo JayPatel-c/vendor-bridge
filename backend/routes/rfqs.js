@@ -89,7 +89,7 @@ router.post('/', protect, authorize('procurement_officer'), async (req, res) => 
 // PUT /api/rfqs/:id — Procurement Officer only
 router.put('/:id', protect, authorize('procurement_officer'), async (req, res) => {
   try {
-    const rfq = await RFQ.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
+    const rfq = await RFQ.findByIdAndUpdate(req.params.id, req.body, { returnDocument: 'after', runValidators: true })
       .populate('vendors', 'name email');
     if (!rfq) return res.status(404).json({ message: 'RFQ not found' });
 

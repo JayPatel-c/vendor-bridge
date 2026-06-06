@@ -67,7 +67,7 @@ router.post('/', protect, authorize('admin'), async (req, res) => {
 // PUT /api/vendors/:id — Admin only
 router.put('/:id', protect, authorize('admin'), async (req, res) => {
   try {
-    const vendor = await Vendor.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    const vendor = await Vendor.findByIdAndUpdate(req.params.id, req.body, { returnDocument: 'after', runValidators: true });
     if (!vendor) return res.status(404).json({ message: 'Vendor not found' });
 
     await ActivityLog.create({

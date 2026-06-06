@@ -89,7 +89,7 @@ router.post('/', protect, authorize('procurement_officer'), async (req, res) => 
 
 router.put('/:id', protect, authorize('procurement_officer'), async (req, res) => {
   try {
-    const po = await PurchaseOrder.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
+    const po = await PurchaseOrder.findByIdAndUpdate(req.params.id, req.body, { returnDocument: 'after', runValidators: true })
       .populate('vendor', 'name email');
     if (!po) return res.status(404).json({ message: 'Purchase Order not found' });
     await ActivityLog.create({
